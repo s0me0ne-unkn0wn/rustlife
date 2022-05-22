@@ -83,7 +83,6 @@ impl<T: Eq + std::hash::Hash + Copy + From<i32> + std::ops::Add<Output = T> + st
     pub fn ncount(&self, coord: Coord<T>) -> u8 {
         let mut n = 0;
         for dx in -1..2 {
-            // println!("{}", dx);
             for dy in -1..2 {
                 if !(dx == 0 && dy == 0) {
                     if let Some(_st) = self.get(coord.offset(Coord(dx.into(), dy.into()))) {
@@ -217,12 +216,9 @@ impl<T: From<i32> + std::ops::Add<Output = T> + std::ops::Sub<Output = T> + std:
         self.win.erase();
         for (x, ym) in map.map.iter() {
             for (y, _) in ym.iter() {
-                // println!("{} {}", *x, *y);
                 if self.is_inside(*x, *y) {
-                    // println!("inside");
                     let vpx = i32::try_from(*x - self.origin.0).ok().unwrap();
                     let vpy = i32::try_from(*y - self.origin.1).ok().unwrap();
-                    // println!("VPCRD {} {}", vpx, vpy);
                     self.win.mvaddch(vpy, vpx, 'O');
                 }
             }
@@ -322,14 +318,4 @@ fn main() {
     }
 
     endwin();
-
-
-    // let mut c = 0;
-    // for i in map.iter() {
-    //     println!("ITER {} {}", i.0, i.1);
-    //     c += 1;
-    //     if c > 20 {
-    //         break;
-    //     }
-    // }
 }
