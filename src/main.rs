@@ -138,7 +138,6 @@ impl<'a, T: Eq + std::hash::Hash + std::fmt::Display> MapIter<'_, T> {
                 self.xkey = keys.next();
                 if self.xkey.is_some() {
                     if let Some(yval) = self.map.map.get(self.xkey.unwrap()) {
-                        // println!("Got X {}", self.xkey.unwrap());
                         self.ykeys = Some(yval.keys());
                         self.ykey = None;
                     } else {
@@ -233,12 +232,15 @@ impl<T: From<i32> + std::ops::Add<Output = T> + std::ops::Sub<Output = T> + std:
 }
 
 fn main() {
+    let slp = Duration::from_millis(10);
+
     let mut map: Map<i64> = Map::new_from_str_array(INIT);
 
     let win = initscr();
     curs_set(0);
     win.nodelay(true);
     win.keypad(true);
+
     let mut viewport: Viewport<i64> = Viewport::new(&win);
 
     loop {
@@ -249,7 +251,7 @@ fn main() {
 
             for i in map.iter() {
                 let nc = map.ncount(i);
-                // println!("NCOUNT {} {} {}", i.0, i.1, nc);
+
                 if nc < 2 || nc > 3 {
                     dying.push(i);
                 }
@@ -314,7 +316,7 @@ fn main() {
             }
         }
 
-        sleep(Duration::from_millis(10));
+        sleep(slp);
     }
 
     endwin();
