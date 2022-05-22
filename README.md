@@ -1,11 +1,11 @@
 # Conway's Game of Life in Rust implemented in an old school way
 
 ## SUMMARY
-This is an self-educational project. I just wanted to play around with Rust and to implement the Game of Life when you're starting to familiarize
+This is a self-educational project. I just wanted to play around with Rust and to implement the Game of Life when you're starting to familiarize
 yourself with a new language is a kind of tradition.
 
-The code is definitely overcomplicated, partially on purpose, as I wanted to get familiar with generics and traits, and partially because I am not yet good
-at the language at all.
+The code is definitely overcomplicated, partially on purpose, as I wanted to get familiar with generics and traits, and partially because I am not good
+at the language at all yet.
 
 ## SYNOPSIS
 Just `cargo run` it.
