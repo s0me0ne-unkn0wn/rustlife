@@ -1,6 +1,8 @@
 use std::collections::{HashMap, hash_map::{Entry, Keys}};
 use std::thread::sleep;
 use std::time::Duration;
+use std::ops::{Add, AddAssign, Sub};
+use std::hash::Hash;
 use pancurses::*;
 
 const INIT: &'static [&str] = &[
@@ -19,10 +21,12 @@ const INIT: &'static [&str] = &[
     "            XX                      ",
 ];
 
+type BaseType = i64;
+
 #[derive(Copy, Clone)]
 struct Coord<T: Copy> (T, T);
 
-impl<T: std::ops::Add<Output = T> + Copy> Coord<T> {
+impl<T: Add<Output = T> + Copy> Coord<T> {
     pub fn offset(&self, off: Coord<T>) -> Coord<T> {
         Coord(self.0 + off.0, self.1 + off.1)
     }
@@ -38,7 +42,7 @@ struct Map<T> {
     map: HashMap<T, HashMap<T, State>>,
 }
 
-impl<T: Eq + std::hash::Hash + Copy + From<i32> + std::ops::Add<Output = T> + std::ops::AddAssign> Map<T> {
+impl<T: Eq + Hash + Copy + From<i32> + Add<Output = T> + AddAssign> Map<T> {
     pub fn new() -> Map<T> {
         Map {
             map: HashMap::new(),
@@ -131,7 +135,7 @@ struct MapIter<'a, T> {
     ykey: Option<&'a T>,
 }
 
-impl<'a, T: Eq + std::hash::Hash + std::fmt::Display> MapIter<'_, T> {
+impl<'a, T: Eq + Hash> MapIter<'_, T> {
     fn next_xkey(&mut self) -> bool {
         match &mut self.xkeys {
             Some(keys) => {
@@ -165,7 +169,7 @@ impl<'a, T: Eq + std::hash::Hash + std::fmt::Display> MapIter<'_, T> {
     }
 }
 
-impl<'a, T: Copy + Eq + std::hash::Hash + std::fmt::Display> Iterator for MapIter<'a, T> {
+impl<'a, T: Copy + Eq + Hash> Iterator for MapIter<'a, T> {
     type Item = Coord<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -192,8 +196,15 @@ struct Viewport<'a, T: Copy> {
     size: Coord<T>
 }
 
-impl<T: From<i32> + std::ops::Add<Output = T> + std::ops::Sub<Output = T> + std::cmp::PartialOrd + Copy + std::ops::AddAssign> Viewport<'_, T> where i32: TryFrom<T> {
-// impl<T: num::Integer> Viewport<T> {
+impl<T> Viewport<'_, T> where
+    i32: TryFrom<T>,
+    T: From<i32>,
+    T: Add<Output = T>,
+    T: Sub<Output = T>,
+    T: PartialOrd,
+    T: Copy,
+    T: AddAssign
+{
     pub fn new(win: &pancurses::Window) -> Viewport<T> {
         let mx = win.get_max_x();
         let my = win.get_max_y();
@@ -234,20 +245,20 @@ impl<T: From<i32> + std::ops::Add<Output = T> + std::ops::Sub<Output = T> + std:
 fn main() {
     let slp = Duration::from_millis(10);
 
-    let mut map: Map<i64> = Map::new_from_str_array(INIT);
+    let mut map: Map<BaseType> = Map::new_from_str_array(INIT);
 
     let win = initscr();
     curs_set(0);
     win.nodelay(true);
     win.keypad(true);
 
-    let mut viewport: Viewport<i64> = Viewport::new(&win);
+    let mut viewport: Viewport<BaseType> = Viewport::new(&win);
 
     loop {
         viewport.render(&map);
 
         {
-            let mut dying: Vec<Coord<i64>> = Vec::new();
+            let mut dying: Vec<Coord<BaseType>> = Vec::new();
 
             for i in map.iter() {
                 let nc = map.ncount(i);
@@ -263,7 +274,7 @@ fn main() {
         }
 
         {
-            let mut alive: Vec<Coord<i64>> = Vec::new();
+            let mut alive: Vec<Coord<BaseType>> = Vec::new();
 
             for i in map.iter() {
                 for dx in -1..2 {
@@ -283,7 +294,7 @@ fn main() {
         }
 
         {
-            let mut kill: Vec<Coord<i64>> = Vec::new();
+            let mut kill: Vec<Coord<BaseType>> = Vec::new();
 
             for i in map.iter() {
                 if let Some(s) = map.get(i) {
