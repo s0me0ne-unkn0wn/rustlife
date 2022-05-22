@@ -18,7 +18,9 @@ Viewport size is limited to `i32` by `ncurses` implementation. Let's just hope n
 ## LICENSE
 This software is distributed under the terms and conditions of Beer-ware License revision 42, full text follows:
 
+```
  "THE BEER-WARE LICENSE" (Revision 42):
  <s0me0ne@s0me0ne.com> wrote this file.  As long as you retain this notice you
  can do whatever you want with this stuff. If we meet some day, and you think
  this stuff is worth it, you can buy me a beer in return
+```
