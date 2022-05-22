@@ -7,6 +7,13 @@ yourself with a new language is a kind of tradition.
 The code is definitely overcomplicated, partially on purpose, as I wanted to get familiar with generics and traits, and partially because I am not yet good
 at the language at all.
 
+## SYNOPSIS
+Just `cargo run` it.
+
+Use arrow keys to control the viewport.
+
+Use `Q` to quit.
+
 ## FEATURES
 * Renders to console using [pancurses](https://github.com/ihalila/pancurses) for that old school feeling
 * Infinite board (well, not really, but you can use `i128` for coordinates thanks to generics)
