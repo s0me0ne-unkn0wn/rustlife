@@ -1,6 +1,6 @@
 use std::collections::{HashMap, hash_map::{Entry, Keys}};
 use std::thread::sleep;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 use std::ops::{Add, AddAssign, Sub};
 use std::hash::Hash;
 use pancurses::*;
@@ -10,15 +10,23 @@ const INIT: &'static [&str] = &[
     // " XX",
     // " X ",
 
-    "                        X           ",
-    "                      X X           ",
-    "            XX      XX            XX",
-    "           X   X    XX            XX",
-    "XX        X     X   XX              ",
-    "XX        X   X XX    X X           ",
-    "          X     X       X           ",
-    "           X   X                    ",
-    "            XX                      ",
+    // " XX",
+    // "XX ",
+    // " X ",
+
+    " X     ",
+    "   X   ",
+    "XX  XXX",
+
+    // "                        X           ",
+    // "                      X X           ",
+    // "            XX      XX            XX",
+    // "           X   X    XX            XX",
+    // "XX        X     X   XX              ",
+    // "XX        X   X XX    X X           ",
+    // "          X     X       X           ",
+    // "           X   X                    ",
+    // "            XX                      ",
 ];
 
 type BaseType = i64;
@@ -193,7 +201,9 @@ impl<'a, T: Copy + Eq + Hash> Iterator for MapIter<'a, T> {
 struct Viewport<'a, T: Copy> {
     win: &'a pancurses::Window,
     origin: Coord<T>,
-    size: Coord<T>
+    size: Coord<T>,
+    turn: u64, // TODO: Move stats to Map<T>
+    cells :u64,
 }
 
 impl<T> Viewport<'_, T> where
@@ -203,7 +213,7 @@ impl<T> Viewport<'_, T> where
     T: Sub<Output = T>,
     T: PartialOrd,
     T: Copy,
-    T: AddAssign
+    T: AddAssign,
 {
     pub fn new(win: &pancurses::Window) -> Viewport<T> {
         let mx = win.get_max_x();
@@ -211,7 +221,9 @@ impl<T> Viewport<'_, T> where
         Viewport {
             win,
             origin: Coord((-mx / 2).into(), (-my / 2).into()),
-            size: Coord(mx.into(), my.into())
+            size: Coord(mx.into(), my.into()),
+            turn: 0,
+            cells: 0,
         }
     }
 
@@ -233,17 +245,22 @@ impl<T> Viewport<'_, T> where
                 }
             }
         }
+        self.win.mvaddstr(i32::try_from(self.size.1).ok().unwrap() - 1, 0, format!("Turn: {} Cells: {}", self.turn, self.cells));
         self.win.refresh();
     }
 
-    pub fn mv(&mut self, x: T, y: T) {
+    pub fn mv(&mut self, x: T, y: T) { // TODO: Refactor to accept Coord<T>
         self.origin.0 += x;
         self.origin.1 += y;
+    }
+
+    pub fn update_stats(&mut self, turn: u64, cells: u64) {
+        self.turn = turn;
+        self.cells = cells;
     }
 }
 
 fn main() {
-    let slp = Duration::from_millis(10);
 
     let mut map: Map<BaseType> = Map::new_from_str_array(INIT);
 
@@ -254,8 +271,21 @@ fn main() {
 
     let mut viewport: Viewport<BaseType> = Viewport::new(&win);
 
+    let mut turn = 0u64;
+    let mut cells = 0u64;
+
+    let mut delay = 100;
+    let mut do_delay = true;
+
     loop {
+        turn += 1;
+
+        let now = SystemTime::now();
+
+        viewport.update_stats(turn, cells);
         viewport.render(&map);
+
+        cells = 0;
 
         {
             let mut dying: Vec<Coord<BaseType>> = Vec::new();
@@ -300,7 +330,10 @@ fn main() {
                 if let Some(s) = map.get(i) {
                     match s {
                         State::Dying => kill.push(i),
-                        State::Alive => (),
+                        State::Alive => {
+                            cells += 1;
+                            ()
+                        },
                     }
                 }
             }
@@ -321,13 +354,27 @@ fn main() {
                 Input::Character(c) => {
                     if c == 'q' {
                         break;
+                    } else if c == 'd' {
+                        do_delay = !do_delay;
+                    } else if c == '-' {
+                        delay *= 2;
+                    } else if c == '+' {
+                        if delay > 1 {
+                            delay /= 2;
+                        }
                     }
                 },
                 _ => ()
             }
         }
 
-        sleep(slp);
+        if do_delay {
+            let elapsed = now.elapsed().unwrap();
+            let delay_dur = Duration::from_millis(delay);
+            if delay_dur > elapsed {
+                sleep(delay_dur - elapsed);
+            }
+        }
     }
 
     endwin();
