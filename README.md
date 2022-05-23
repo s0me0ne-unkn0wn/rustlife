@@ -10,6 +10,8 @@ at the language at all yet.
 ## SYNOPSIS
 Just `cargo run` it.
 
+For better impression, run from xterm with a smaller font: `xterm -fn -*-fixed-medium-r-*-*-6-*-*-*-*-*-*-*`
+
 Use arrow keys to control the viewport.
 
 Use `D` to turn inter-move delays on or off.
