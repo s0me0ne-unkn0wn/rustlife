@@ -12,6 +12,10 @@ Just `cargo run` it.
 
 Use arrow keys to control the viewport.
 
+Use `D` to turn inter-move delays on or off.
+
+Use `+` and `-` to control the duration of a move.
+
 Use `Q` to quit.
 
 ## FEATURES
