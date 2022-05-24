@@ -209,8 +209,7 @@ fn main() {
                     } else if c == '-' {
                         delay *= 2;
                     } else if c == '+' {
-                        let millis = delay.as_millis();
-                        if millis > 1 {
+                        if delay.as_millis() > 1 {
                             delay /= 2;
                         }
                     }
@@ -218,14 +217,6 @@ fn main() {
                 _ => ()
             }
         }
-
-        // if do_delay {
-        //     let elapsed = now.elapsed().unwrap();
-        //     let delay_dur = Duration::from_millis(delay);
-        //     if delay_dur > elapsed {
-        //         sleep(delay_dur - elapsed);
-        //     }
-        // }
     }
 
     endwin();
