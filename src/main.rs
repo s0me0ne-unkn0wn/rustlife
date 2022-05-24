@@ -1,5 +1,5 @@
 // use std::collections::{HashMap, hash_map::{Entry, Keys}};
-use std::thread::sleep;
+// use std::thread::sleep;
 use std::time::{Duration, SystemTime};
 use std::ops::{Add, AddAssign, Sub};
 use std::hash::Hash;
@@ -118,76 +118,82 @@ fn main() {
     let mut turn = 0u64;
     let mut cells = 0u64;
 
-    let mut delay = 100;
+    let mut delay = Duration::from_millis(128);
     let mut do_delay = true;
+    let mut last_now = SystemTime::now();
 
     loop {
-        turn += 1;
-
         let now = SystemTime::now();
 
-        viewport.update_stats(turn, cells);
-        viewport.render(&map);
+        if !do_delay || now.duration_since(last_now).unwrap_or(Duration::from_millis(0)) > delay {
+            turn += 1;
+            last_now = now;
 
-        cells = 0;
+            viewport.update_stats(turn, cells);
+            viewport.render(&map);
 
-        {
-            let mut dying: Vec<Coord<BaseType>> = Vec::new();
+            cells = 0;
 
-            for i in map.iter() {
-                let nc = map.ncount(i);
+            {
+                let mut dying: Vec<Coord<BaseType>> = Vec::new();
 
-                if nc < 2 || nc > 3 {
-                    dying.push(i);
+                for i in map.iter() {
+                    let nc = map.ncount(i);
+
+                    if nc < 2 || nc > 3 {
+                        dying.push(i);
+                    }
+                }
+
+                for d in dying {
+                    map.set(d, State::Dying);
                 }
             }
 
-            for d in dying {
-                map.set(d, State::Dying);
-            }
-        }
+            {
+                let mut alive: Vec<Coord<BaseType>> = Vec::new();
 
-        {
-            let mut alive: Vec<Coord<BaseType>> = Vec::new();
-
-            for i in map.iter() {
-                for dx in -1..2 {
-                    for dy in -1..2 {
-                        let c = Coord(i.0 + dx, i.1 + dy);
-                        let nc = map.ncount(c.clone());
-                        if nc == 3 {
-                            alive.push(c);
+                for i in map.iter() {
+                    for dx in -1..2 {
+                        for dy in -1..2 {
+                            let c = Coord(i.0 + dx, i.1 + dy);
+                            let nc = map.ncount(c.clone());
+                            if nc == 3 {
+                                alive.push(c);
+                            }
                         }
                     }
                 }
-            }
 
-            for a in alive {
-                map.set(a, State::Alive);
-            }
-        }
-
-        {
-            let mut kill: Vec<Coord<BaseType>> = Vec::new();
-
-            for i in map.iter() {
-                if let Some(s) = map.get(i) {
-                    match s {
-                        State::Dying => kill.push(i),
-                        State::Alive => {
-                            cells += 1;
-                            ()
-                        },
-                    }
+                for a in alive {
+                    map.set(a, State::Alive);
                 }
             }
 
-            for k in kill {
-                map.kill(k);
-            }
-        }
+            {
+                let mut kill: Vec<Coord<BaseType>> = Vec::new();
 
-        map.gc();
+                for i in map.iter() {
+                    if let Some(s) = map.get(i) {
+                        match s {
+                            State::Dying => kill.push(i),
+                            State::Alive => {
+                                cells += 1;
+                                ()
+                            },
+                        }
+                    }
+                }
+
+                for k in kill {
+                    map.kill(k);
+                }
+            }
+
+            map.gc();
+        } else {
+            viewport.render(&map);
+        }
 
         if let Some(ch) = win.getch() {
             match ch {
@@ -203,7 +209,8 @@ fn main() {
                     } else if c == '-' {
                         delay *= 2;
                     } else if c == '+' {
-                        if delay > 1 {
+                        let millis = delay.as_millis();
+                        if millis > 1 {
                             delay /= 2;
                         }
                     }
@@ -212,13 +219,13 @@ fn main() {
             }
         }
 
-        if do_delay {
-            let elapsed = now.elapsed().unwrap();
-            let delay_dur = Duration::from_millis(delay);
-            if delay_dur > elapsed {
-                sleep(delay_dur - elapsed);
-            }
-        }
+        // if do_delay {
+        //     let elapsed = now.elapsed().unwrap();
+        //     let delay_dur = Duration::from_millis(delay);
+        //     if delay_dur > elapsed {
+        //         sleep(delay_dur - elapsed);
+        //     }
+        // }
     }
 
     endwin();
