@@ -73,7 +73,7 @@ impl<T: Eq + Hash + Copy + From<i32> + Add<Output = T> + AddAssign> Map<T> {
         n
     }
 
-    pub fn new_from_str_array<'a>(s: &[&str]) -> Map<T> {
+    pub fn new_from_str_array(s: &[&str]) -> Map<T> {
         let mut newmap: Map<T> = Map::new();
         let mut y: T = 0.into();
         let mut x: T;
