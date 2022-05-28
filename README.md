@@ -18,6 +18,8 @@ Use `D` to turn inter-move delays on or off.
 
 Use `+` and `-` to control the duration of a move.
 
+Use `O` to open a `.cells` or `.rle` file.
+
 Use `Q` to quit.
 
 ## FEATURES
