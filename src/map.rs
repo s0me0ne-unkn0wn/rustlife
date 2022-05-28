@@ -73,13 +73,14 @@ impl<T: Eq + Hash + Copy + From<i32> + Add<Output = T> + AddAssign> Map<T> {
         n
     }
 
-    pub fn new_from_str_array(s: &[&str]) -> Map<T> {
+    // pub fn new_from_str_array<S: AsRef<[&str]>> (s: S) -> Map<T> {
+    pub fn new_from_str_array<S: Into<String> + std::fmt::Display>(s: Vec<S>) -> Map<T> {
         let mut newmap: Map<T> = Map::new();
         let mut y: T = 0.into();
         let mut x: T;
         for row in s {
             x = 0.into();
-            for ch in row.chars() {
+            for ch in row.to_string().chars() {
                 if ch != ' ' {
                     newmap.set(Coord(x, y), State::Alive);
                 }
