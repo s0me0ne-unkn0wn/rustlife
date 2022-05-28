@@ -122,7 +122,6 @@ fn read_rle<P: AsRef<Path>>(file: P) -> io::Result<Vec<String>> {
         } else if l.starts_with("x") {
             // println!("Ignored rule set {}", l);
         } else {
-            // println!("Parsing {}", l);
             for c in l.chars() {
                 match c {
                     '0' ..= '9' => {
@@ -156,6 +155,20 @@ fn read_rle<P: AsRef<Path>>(file: P) -> io::Result<Vec<String>> {
         }
     }
     Err(io::Error::new(io::ErrorKind::InvalidData, "Cannot parse RLE file"))
+}
+
+fn read_cells<P: AsRef<Path>>(file: P) -> io::Result<Vec<String>> {
+    let cells = read_lines(file)?;
+    let mut res: Vec<String> = Vec::new();
+
+    for l in cells {
+        if l.starts_with("!") {
+
+        } else {
+            res.push(l.replace(".", " "));
+        }
+    }
+    Ok(res)
 }
 
 fn main() {
@@ -350,6 +363,18 @@ fn main() {
                                                 cursor -= 1;
                                             }
                                         },
+                                        Input::KeyNPage => {
+                                            let new_line = std::cmp::min(first_line + cursor - 1 + num_lines, entries.len());
+                                            first_line = std::cmp::min(first_line + num_lines, entries.len().checked_sub(num_lines).unwrap_or(0));
+                                            cursor = std::cmp::min(new_line - first_line + 1, std::cmp::min(num_lines, entries.len()));
+                                            fowin.erase();
+                                        },
+                                        Input::KeyPPage => {
+                                            let new_line = (first_line + cursor - 1).checked_sub(num_lines).unwrap_or(0);
+                                            first_line = first_line.checked_sub(num_lines).unwrap_or(0);
+                                            cursor = new_line - first_line + 1;
+                                            fowin.erase();
+                                        },
                                         Input::Character(c) => {
                                             if c == '\x0a' {
                                                 let e = &entries[first_line + cursor - 1];
@@ -360,6 +385,11 @@ fn main() {
                                                     continue 'dir;
                                                 } else if e.0.to_lowercase().ends_with(".rle") {
                                                     let arr = read_rle(&e.1).unwrap();
+                                                    map = Map::new_from_str_array(arr);
+                                                    running = true;
+                                                    break 'dir;
+                                                } else if e.0.to_lowercase().ends_with(".cells") {
+                                                    let arr = read_cells(&e.1).unwrap();
                                                     map = Map::new_from_str_array(arr);
                                                     running = true;
                                                     break 'dir;
