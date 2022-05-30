@@ -297,10 +297,10 @@ fn main() {
 
         if let Some(ch) = win.getch() {
             match ch {
-                Input::KeyLeft => viewport.mv(-1, 0),
-                Input::KeyUp => viewport.mv(0, -1),
-                Input::KeyRight => viewport.mv(1, 0),
-                Input::KeyDown => viewport.mv(0, 1),
+                Input::KeyLeft => viewport.mv(-3, 0),
+                Input::KeyUp => viewport.mv(0, -3),
+                Input::KeyRight => viewport.mv(3, 0),
+                Input::KeyDown => viewport.mv(0, 3),
                 Input::Character(c) => {
                     if c == 'q' {
                         break;
