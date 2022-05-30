@@ -6,6 +6,7 @@ use crate::state::State;
 
 use std::hash::Hash;
 use std::ops::Add;
+use std::cmp::{min, max};
 
 use std::ops::AddAssign;
 
@@ -13,7 +14,7 @@ pub struct Map<T> {
     map: HashMap<T, HashMap<T, State>>,
 }
 
-impl<T: Eq + Hash + Copy + From<i32> + Add<Output = T> + AddAssign> Map<T> {
+impl<T: Eq + Hash + Copy + From<i32> + Add<Output = T> + AddAssign + Ord> Map<T> {
     pub fn new() -> Map<T> {
         Map {
             map: HashMap::new(),
@@ -71,6 +72,22 @@ impl<T: Eq + Hash + Copy + From<i32> + Add<Output = T> + AddAssign> Map<T> {
             }
         }
         n
+    }
+
+    pub fn dims(&self) -> (Coord<T>, Coord<T>) {
+        let mut minx: Option<T> = None;
+        let mut miny: Option<T> = None;
+        let mut maxx: Option<T> = None;
+        let mut maxy: Option<T> = None;
+
+        for i in self.iter() {
+            minx = Some(if minx.is_none() { i.0 } else { min(i.0, minx.unwrap()) });
+            miny = Some(if miny.is_none() { i.1 } else { min(i.1, miny.unwrap()) });
+            maxx = Some(if maxx.is_none() { i.0 } else { max(i.0, maxx.unwrap()) });
+            maxy = Some(if maxy.is_none() { i.1 } else { max(i.1, maxy.unwrap()) });
+        }
+
+        (Coord(minx.unwrap(), miny.unwrap()), Coord(maxx.unwrap(), maxy.unwrap()))
     }
 
     // pub fn new_from_str_array<S: AsRef<[&str]>> (s: S) -> Map<T> {

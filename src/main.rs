@@ -5,6 +5,8 @@ use std::ops::{Add, AddAssign, Sub};
 use std::hash::Hash;
 use std::io::{self, BufReader, BufRead};
 use std::path::{Path};
+use std::fs::File;
+use std::collections::HashMap;
 use pancurses::*;
 
 pub mod coord;
@@ -60,6 +62,7 @@ impl<T> Viewport<'_, T> where
     T: AddAssign,
     T: Eq,
     T: Hash,
+    T: Ord,
 {
     pub fn new(win: &pancurses::Window) -> Viewport<T> {
         let mx = win.get_max_x();
@@ -100,6 +103,15 @@ impl<T> Viewport<'_, T> where
         self.origin.1 += y;
     }
 
+    pub fn mvto(&mut self, x: T, y: T) { // TODO: Refactor to accept Coord<T>
+        self.origin.0 = x;
+        self.origin.1 = y;
+    }
+
+    pub fn getsize(&self) -> (T, T) {
+        (self.size.0, self.size.1)
+    }
+
     pub fn update_stats(&mut self, turn: u64, cells: u64) {
         self.turn = turn;
         self.cells = cells;
@@ -107,7 +119,7 @@ impl<T> Viewport<'_, T> where
 }
 
 fn read_lines<P: AsRef<Path>>(file: P) -> io::Result<Vec<String>> {
-    BufReader::new(std::fs::File::open(file)?).lines().collect()
+    BufReader::new(File::open(file)?).lines().collect()
 }
 
 // TODO: Refactor: separate parsers to a module (or integrate with Map)
@@ -141,7 +153,12 @@ fn read_rle<P: AsRef<Path>>(file: P) -> io::Result<Vec<String>> {
                     },
                     '$' => {
                         res.push(str);
+                        let num = numstr.parse::<i32>().unwrap_or(0);
+                        for _ in 0..(num - 1) {
+                            res.push("".to_string());
+                        }
                         str = String::new();
+                        numstr = String::new();
                     },
                     '!' => {
                         if !str.is_empty() {
@@ -171,6 +188,16 @@ fn read_cells<P: AsRef<Path>>(file: P) -> io::Result<Vec<String>> {
     Ok(res)
 }
 
+fn center_viewport(map: &Map<BaseType>, viewport: &mut Viewport<BaseType>) {
+    let (ul, lr) = map.dims();
+    let (sx, sy) = viewport.getsize();
+    let x0 = (lr.0 - ul.0) / 2 + ul.0 - sx / 2;
+    let y0 = (lr.1 - ul.1) / 2 + ul.1 - sy / 2;
+    // panic!("({}, {}), ({}, {}) - ({}, {})", ul.0, ul.1, lr.0, lr.1, sx, sy);
+    viewport.mvto(x0, y0);
+
+}
+
 fn main() {
 
     let mut map: Map<BaseType> = Map::new_from_str_array(INIT.to_vec());
@@ -188,12 +215,11 @@ fn main() {
     let mut delay = Duration::from_millis(128);
     let mut do_delay = true;
     let mut last_now = SystemTime::now();
-    let mut running = true;
 
     loop {
         let now = SystemTime::now();
 
-        if running && (!do_delay || now.duration_since(last_now).unwrap_or(Duration::from_millis(0)) > delay) {
+        if !do_delay || now.duration_since(last_now).unwrap_or(Duration::from_millis(0)) > delay {
             turn += 1;
             last_now = now;
 
@@ -219,16 +245,22 @@ fn main() {
             }
 
             {
+                let mut alive_map: HashMap<BaseType, HashMap<BaseType, u8>> = HashMap::new();
                 let mut alive: Vec<Coord<BaseType>> = Vec::new();
 
                 for i in map.iter() {
-                    for dx in -1..2 {
-                        for dy in -1..2 {
-                            let c = Coord(i.0 + dx, i.1 + dy);
-                            let nc = map.ncount(c.clone());
-                            if nc == 3 {
-                                alive.push(c);
-                            }
+                    for dx in -1..=1 {
+                        for dy in -1..=1 {
+                            let xv = alive_map.entry(i.0 + dx).or_insert(HashMap::new());
+                            xv.entry(i.1 + dy).or_insert(map.ncount(Coord(i.0 + dx, i.1 + dy)));
+                        }
+                    }
+                }
+
+                for (x, yv) in alive_map.iter() {
+                    for (y, nc) in yv.iter() {
+                        if *nc == 3 {
+                            alive.push(Coord(*x, *y));
                         }
                     }
                 }
@@ -281,7 +313,6 @@ fn main() {
                             delay /= 2;
                         }
                     } else if c == 'o' {
-                        running = false;
                         let fowin = win.subwin(
                             win.get_max_y() / 2,
                             win.get_max_x() / 2,
@@ -386,12 +417,12 @@ fn main() {
                                                 } else if e.0.to_lowercase().ends_with(".rle") {
                                                     let arr = read_rle(&e.1).unwrap();
                                                     map = Map::new_from_str_array(arr);
-                                                    running = true;
+                                                    center_viewport(&map, &mut viewport);
                                                     break 'dir;
                                                 } else if e.0.to_lowercase().ends_with(".cells") {
                                                     let arr = read_cells(&e.1).unwrap();
                                                     map = Map::new_from_str_array(arr);
-                                                    running = true;
+                                                    center_viewport(&map, &mut viewport);
                                                     break 'dir;
                                                 }
                                             } else {
