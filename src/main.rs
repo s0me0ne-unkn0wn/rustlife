@@ -193,7 +193,6 @@ fn center_viewport(map: &Map<BaseType>, viewport: &mut Viewport<BaseType>) {
     let (sx, sy) = viewport.getsize();
     let x0 = (lr.0 - ul.0) / 2 + ul.0 - sx / 2;
     let y0 = (lr.1 - ul.1) / 2 + ul.1 - sy / 2;
-    // panic!("({}, {}), ({}, {}) - ({}, {})", ul.0, ul.1, lr.0, lr.1, sx, sy);
     viewport.mvto(x0, y0);
 
 }
@@ -228,69 +227,33 @@ fn main() {
 
             cells = 0;
 
-            {
-                let mut dying: Vec<Coord<BaseType>> = Vec::new();
+            let mut neighbor_map: HashMap<BaseType, HashMap<BaseType, u8>> = HashMap::new();
 
-                for i in map.iter() {
-                    let nc = map.ncount(i);
-
-                    if nc < 2 || nc > 3 {
-                        dying.push(i);
+            for i in map.iter() {
+                for dx in -1..=1 {
+                    for dy in -1..=1 {
+                        let xv = neighbor_map.entry(i.0 + dx).or_insert(HashMap::new());
+                        xv.entry(i.1 + dy).or_insert(map.ncount(Coord(i.0 + dx, i.1 + dy)));
                     }
-                }
-
-                for d in dying {
-                    map.set(d, State::Dying);
                 }
             }
 
-            {
-                let mut alive_map: HashMap<BaseType, HashMap<BaseType, u8>> = HashMap::new();
-                let mut alive: Vec<Coord<BaseType>> = Vec::new();
-
-                for i in map.iter() {
-                    for dx in -1..=1 {
-                        for dy in -1..=1 {
-                            let xv = alive_map.entry(i.0 + dx).or_insert(HashMap::new());
-                            xv.entry(i.1 + dy).or_insert(map.ncount(Coord(i.0 + dx, i.1 + dy)));
-                        }
+            for (x, yv) in neighbor_map.iter() {
+                for (y, nc) in yv.iter() {
+                    let coord = Coord(*x, *y);
+                    let state = map.get(coord);
+                    if state.unwrap_or(State::Dying) == State::Alive && *nc == 2 || *nc == 3 {
+                        map.set(coord, State::Alive);
+                        cells += 1;
+                    } else {
+                        map.kill(coord);
                     }
-                }
-
-                for (x, yv) in alive_map.iter() {
-                    for (y, nc) in yv.iter() {
-                        if *nc == 3 {
-                            alive.push(Coord(*x, *y));
-                        }
-                    }
-                }
-
-                for a in alive {
-                    map.set(a, State::Alive);
                 }
             }
 
-            {
-                let mut kill: Vec<Coord<BaseType>> = Vec::new();
-
-                for i in map.iter() {
-                    if let Some(s) = map.get(i) {
-                        match s {
-                            State::Dying => kill.push(i),
-                            State::Alive => {
-                                cells += 1;
-                                ()
-                            },
-                        }
-                    }
-                }
-
-                for k in kill {
-                    map.kill(k);
-                }
+            if turn % 10 == 0 {
+                map.gc();
             }
-
-            map.gc();
         } else {
             viewport.render(&map);
         }
@@ -412,7 +375,7 @@ fn main() {
                                                 if e.1.is_dir() {
                                                     let mut newcwd = cwd.clone();
                                                     newcwd.push(&e.1);
-                                                    std::env::set_current_dir(newcwd);
+                                                    let _res = std::env::set_current_dir(newcwd);
                                                     continue 'dir;
                                                 } else if e.0.to_lowercase().ends_with(".rle") {
                                                     let arr = read_rle(&e.1).unwrap();
